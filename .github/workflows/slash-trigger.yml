@@ -1,0 +1,44 @@
+name: Slash trigger
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  statuses: write
+  contents: read
+  actions: write
+
+jobs:
+  trigger:
+    if: |
+      github.event.issue.pull_request &&
+      github.event.comment.body == '/test'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get PR branch + SHA
+        id: pr
+        run: |
+          PR=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.issue.number }})
+          echo "head_ref=$(echo $PR | jq -r .head.ref)" >> $GITHUB_OUTPUT
+          echo "head_sha=$(echo $PR | jq -r .head.sha)" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set pending status
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.pr.outputs.head_sha }} \
+            -d '{"state":"pending","context":"slash-test","description":"Tests running..."}'
+
+      - name: Dispatch pipeline
+        run: |
+          gh workflow run sample-pipeline.yml \
+            --ref main \
+            --field head_ref=${{ steps.pr.outputs.head_ref }} \
+            --field head_sha=${{ steps.pr.outputs.head_sha }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
