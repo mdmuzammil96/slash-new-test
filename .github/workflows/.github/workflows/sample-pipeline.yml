@@ -1,0 +1,37 @@
+name: Sample test pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      head_ref:
+        required: true
+      head_sha:
+        required: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.head_ref }}
+
+      - name: Simulate tests
+        run: |
+          echo "✓ Running tests on branch: ${{ inputs.head_ref }}"
+          echo "✓ Commit SHA: ${{ inputs.head_sha }}"
+          echo "✓ All tests passed"
+          # Swap this line to simulate failure:
+          # exit 1
+
+      - name: Post status
+        if: always()
+        run: |
+          STATUS=$([[ "${{ job.status }}" == "success" ]] && echo "success" || echo "failure")
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/${{ inputs.head_sha }} \
+            -d "{\"state\":\"$STATUS\",\"context\":\"slash-test\",\"description\":\"Tests $STATUS\"}"
