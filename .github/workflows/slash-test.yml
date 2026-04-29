@@ -1,0 +1,34 @@
+name: Slash command - test
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  run-tests:
+    if: |
+      github.event.issue.pull_request &&
+      github.event.comment.body == '/test'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get PR branch
+        uses: xt0rted/pull-request-comment-branch@v2
+        id: comment-branch
+
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.comment-branch.outputs.head_ref }}
+
+      - name: Run tests
+        run: npm test   # or whatever your test command is
+
+      - name: Report status
+        if: always()
+        uses: myrotvorets/set-commit-status-action@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: ${{ job.status == 'success' && 'success' || 'failure' }}
+          context: slash-test
+          sha: ${{ steps.comment-branch.outputs.head_sha }}
