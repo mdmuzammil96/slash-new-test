@@ -39,11 +39,15 @@ jobs:
             https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.pr.outputs.head_sha }} \
             -d '{"state":"pending","context":"slash-test","description":"Tests running..."}'
 
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
       - name: Trigger test workflow
         run: |
           echo "Triggering test workflow..."
 
           gh workflow run "Sample test pipeline" \
+            --repo ${{ github.repository }} \
             --ref main \
             --field head_ref=${{ steps.pr.outputs.head_ref }} \
             --field head_sha=${{ steps.pr.outputs.head_sha }}
