@@ -37,6 +37,7 @@ jobs:
       - name: Dispatch pipeline
         run: |
           gh workflow run sample-pipeline.yml \
+            --repo ${{ github.repository }} \
             --ref main \
             --field head_ref=${{ steps.pr.outputs.head_ref }} \
             --field head_sha=${{ steps.pr.outputs.head_sha }}
